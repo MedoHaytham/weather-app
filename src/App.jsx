@@ -1,13 +1,14 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import Typography from '@mui/material/Typography';
 import CloudIcon from '@mui/icons-material/Cloud';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import dayjs from 'dayjs';
 import {toast}  from 'react-toastify';
+import { fetchWeather } from './weatheApiSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import 'dayjs/locale/ar';
 
@@ -21,18 +22,14 @@ function App() {
 
   const { t, i18n } = useTranslation();
   const [coords, setCoords] = useState({ lat: null, lon: null });
-  const [weather, setWeather] = useState({
-    name: '',
-    temp: null,
-    description: '',
-    min: null,
-    max: null,
-    icon: '',
-  });
   const [dateAndTime, setDateAndTime] = useState('');
   const [locale, setLocale] = useState('ar');
   const direction = locale === 'en' ? 'ltr' : 'rtl';
+  const isLoading = useSelector((state) => state.weather.isLoading);
+  const weather = useSelector((state) => state.weather.weather);
+  const dispatch = useDispatch();
 
+  console.log(isLoading);
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -50,29 +47,8 @@ function App() {
 
   useEffect(()=>{
     if (!coords.lat || !coords.lon) return;
-    async function fetchWeather() {
-      try {
-        let response = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${coords.lat}&lon=${coords.lon}&appid=e6e5cdf4bbf0ab6cf484e5b6adea6562&lang=${i18n.language}`)
-        const name = response.data.name;
-        const temp = Math.round(response.data.main.temp - 272.15);
-        const description = response.data.weather[0].description;
-        const min = Math.round(response.data.main.temp_min - 272.15);
-        const max = Math.round(response.data.main.temp_max - 272.15);
-        const icon = response.data.weather[0].icon;
-        setWeather({
-          name,
-          temp,
-          description,
-          min,
-          max,
-          icon,
-        });
-      } catch (error) {
-        toast.error('Error on fetch Weather' + error);
-      }
-    }
-    fetchWeather();
-  },[coords.lat, coords.lon, i18n.language]);
+    dispatch(fetchWeather({coords, lang: i18n.language}));
+  },[coords, coords.lat, coords.lon,i18n.language, dispatch]);
 
   useEffect(() => {
     dayjs.locale('ar');
@@ -81,6 +57,7 @@ function App() {
 
   useEffect(() => {
     i18n.changeLanguage('ar');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   function langHandler() {
@@ -108,8 +85,9 @@ function App() {
             <div className='flex justify-around' dir={direction}>
               <div className="degree">
                 <div className='temp flex justify-center items-center'>
+                  {isLoading && <CircularProgress className='text-white!'/>}
                   <Typography variant="h1" className='text-[76px]! md:text-[96px]!'>
-                    {locale === 'en'? weather.temp : weather.temp !== null ? toArabicNumbers(weather.temp.toString()) : ''}
+                    {locale === 'en'? weather.temp : weather.temp ? toArabicNumbers(weather.temp.toString()) : ''}
                   </Typography>
                   <img src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`} className='w-15 md:w-full' alt="icon" />
                 </div>
@@ -117,9 +95,9 @@ function App() {
                   {t(weather.description)}
                 </Typography>
                 <div className='min-max flex items-center'>
-                  <h5 className='capitalize'>{t('min')} : {locale === 'en' ? weather.min : weather.min !== null ? toArabicNumbers(weather.min.toString()) : ''}</h5> 
+                  <h5 className='capitalize'>{t('min')} : {locale === 'en' ? weather.min : weather.min ? toArabicNumbers(weather.min.toString()) : ''}</h5> 
                   <h5 className='mx-1.5'>|</h5> 
-                  <h5 className='capitalize'>{t('max')} : {locale === 'en' ? weather.max : weather.max !== null ? toArabicNumbers(weather.max.toString()) : ''}</h5>
+                  <h5 className='capitalize'>{t('max')} : {locale === 'en' ? weather.max : weather.max ? toArabicNumbers(weather.max.toString()) : ''}</h5>
                 </div>
               </div>
               <CloudIcon className='text-[135px]! md:text-[200px]! text-white!'/>
