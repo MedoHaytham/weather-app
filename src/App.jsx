@@ -29,7 +29,6 @@ function App() {
   const weather = useSelector((state) => state.weather.weather);
   const dispatch = useDispatch();
 
-  console.log(isLoading);
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
