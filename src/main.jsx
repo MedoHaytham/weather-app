@@ -4,6 +4,9 @@ import './index.css'
 import App from './App.jsx'
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
+import './i18n';
+
+
 const theme = createTheme({
   typography: {
     fontFamily: "IBM Plex Sans Arabic",
