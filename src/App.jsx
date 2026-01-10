@@ -3,62 +3,70 @@ import CloudIcon from '@mui/icons-material/Cloud';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import dayjs from 'dayjs';
-import {toast}  from 'react-toastify';
 import { fetchWeather } from './weatheApiSlice';
+import { useTranslation } from 'react-i18next';
+import {toast}  from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 
-
+// changing nums to arabic
 const toArabicNumbers = (string) => {
   const arabicNumbers = '٠١٢٣٤٥٦٧٨٩';
   return string.replace(/[0-9]/g, (w) => arabicNumbers[+w]);
 };
 
 function App() {
-
-  const { t, i18n } = useTranslation();
+  // states
   const [coords, setCoords] = useState({ lat: null, lon: null });
   const [dateAndTime, setDateAndTime] = useState('');
   const [locale, setLocale] = useState('ar');
-  const direction = locale === 'en' ? 'ltr' : 'rtl';
-  const isLoading = useSelector((state) => state.weather.isLoading);
   const weather = useSelector((state) => state.weather.weather);
+  const isLoading = useSelector((state) => state.weather.isLoading);
   const dispatch = useDispatch();
+  
+  // consts
+  const direction = locale === 'en' ? 'ltr' : 'rtl';
+  
+  const { t, i18n } = useTranslation();
 
+  // get lat and lon
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoords({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-          });
-        },
-        (err) => toast.error('Geolocation error:' + err),
-        { enableHighAccuracy: true }
+    if(navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setCoords({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
+      },
+        (error) => toast.error(`Geolocation error: ${error.message}`)
       );
+    } else {
+      toast.error('Geolocation is not supported by this browser');
     }
   }, []);
 
-  useEffect(()=>{
-    if (!coords.lat || !coords.lon) return;
-    dispatch(fetchWeather({coords, lang: i18n.language}));
-  },[coords, coords.lat, coords.lon,i18n.language, dispatch]);
+  // fetching data
+  useEffect(() => {
+    if(coords.lat && coords.lon) {
+      dispatch(fetchWeather({lat: coords.lat, lon: coords.lon, lang: i18n.language}));
+    }
+  }, [coords.lat, coords.lon, dispatch, i18n.language]);
 
+  // set date and time
   useEffect(() => {
     dayjs.locale('ar');
     setDateAndTime(dayjs().format('dddd D MMMM YYYY'));
   },[]);
 
+  // set translation
   useEffect(() => {
     i18n.changeLanguage('ar');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
+  // changing lang
   function langHandler() {
     const newLocale = locale === 'en' ? 'ar' : 'en';
     setLocale(newLocale);
@@ -74,7 +82,7 @@ function App() {
           <div className="content">
             <div className="city-time flex justify-start items-end gap-5 mb-2.5" dir={direction}>
               <Typography variant="h2" className=' text-[20px]! md:text-[45px]! mr-5! font-semibold!'>
-                {t(weather.name)}
+                {weather.name}
               </Typography>
               <Typography variant="h5" className='text-[16px]! md:text-[24px]!'> 
                 {dateAndTime}
@@ -84,11 +92,11 @@ function App() {
             <div className='flex justify-around' dir={direction}>
               <div className="degree">
                 <div className='temp flex justify-center items-center'>
-                  {isLoading && <CircularProgress className='text-white!'/>}
+                  { isLoading && <CircularProgress className='text-white!'/> }
                   <Typography variant="h1" className='text-[76px]! md:text-[96px]!'>
                     {locale === 'en'? weather.temp : weather.temp ? toArabicNumbers(weather.temp.toString()) : ''}
                   </Typography>
-                  <img src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`} className='w-15 md:w-full' alt="icon" />
+                  {weather.icon && <img src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`} className='w-15 md:w-full' alt="icon" />}
                 </div>
                 <Typography variant="h6" className='text-[15px]! md:text-[20px]!'>
                   {t(weather.description)}
